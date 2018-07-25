@@ -1452,7 +1452,7 @@ def LHCplotBetaForFill(fillNo):
     
     for name in names:
         if len(beta[name].dropna()) == 0:
-            beta.drop(labels = name, axis = 1)
+            beta = beta.drop(labels = name, axis = 1)
     names = beta.columns.values
     
     # First remove columns with no data
