@@ -1371,3 +1371,113 @@ def LHCInjectionTree (fill_no, treshhold = 1.0e+11):
     
     return tree
 
+def LHCBunchLifeTimeInSquezee (noOfFill, resample_second = 60, duration_of_stable = pd.Timedelta('0 days 00:10:00')):
+    '''
+    
+    This function returns the bunch lifetime in the squezee and optionaly in stable (default first 10 minutes) mode for the requested fill
+    
+    ===EXAMPLE===
+    beam1DF, beam2DF = importData.LHCBunchLifeTimeInSquezee (6778)
+    beam1DF, beam2DF = importData.LHCBunchLifeTimeInSquezee (6778, resample_second = 60, duration_of_stable = pd.Timedelta('0 days 00:10:00'))
+    
+    '''
+    
+    bunch_intensity = LHCCals2pd(['LHC.BCTFR.A6R4.B%:BUNCH_INTENSITY'], noOfFill, ['SQUEEZE'])#, flag='duration', duration=pd.Timedelta('0 days 00:05:00'))
+    bunch_intensity = bunch_intensity.append(LHCCals2pd(['LHC.BCTFR.A6R4.B%:BUNCH_INTENSITY'], noOfFill, ['STABLE'], flag='duration', duration = duration_of_stable))
+    
+    noOfBunch = len(bunch_intensity['LHC.BCTFR.A6R4.B1:BUNCH_INTENSITY'].iloc[0])
+
+    beam1DF=pd.DataFrame()
+    beam2DF=pd.DataFrame()
+
+    for i in range(0, noOfBunch):
+        a1 = bunch_intensity['LHC.BCTFR.A6R4.B1:BUNCH_INTENSITY'].dropna().apply(lambda x: x[i]).resample(str(resample_second)+'s').mean()
+        b1 = a1.diff()/resample_second
+        beam1DF['lifetime of bunch ' + str(i)+ ' [h]'] = - ((a1/b1).dropna())/3600
+
+        a2 = bunch_intensity['LHC.BCTFR.A6R4.B2:BUNCH_INTENSITY'].dropna().apply(lambda x: x[i]).resample(str(resample_second)+'s').mean()
+        b2 = a2.diff()/resample_second
+        beam2DF['lifetime of bunch ' + str(i)+ ' [h]'] = - ((a2/b2).dropna())/3600
+    
+    return beam1DF, beam2DF
+
+def LHCplotBunchLifeTime (beam1DF, beam2DF, first = 1, last = 3564):
+    
+    '''
+    
+    This function plots the dataframes produced by BunchLifeTimeSquezee
+    
+    ===EXAMPLE===
+    beam1DF, beam2DF = importData.LHCBunchLifeTimeInSquezee (6778, resample_second = 60, duration_of_stable = pd.Timedelta('0 days 00:10:00'))
+    importData.LHCplotBunchLifeTime (beam1DF, beam2DF)
+    importData.LHCplotBunchLifeTime (beam1DF, beam2DF, first = 500, last = 1500)
+    
+    '''
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(25,5))
+
+    beam1DF_temp = beam1DF.iloc[:, first:last]
+    time_max = (beam1DF_temp.index[-1] - beam1DF_temp.index[0]).total_seconds()/60
+    im1 = ax1.imshow(beam1DF_temp.values, interpolation = 'nearest', extent = [first - 1, last - 1, 0, time_max], vmin = 0, vmax = 250, aspect='auto', origin='lower', cmap = plt.get_cmap('jet_r'))
+    ax1.set_title('Beam 1')
+    ax1.set_xlabel('Bunch number')
+    ax1.set_ylabel('Time [min]')
+    colorbar_handle = fig.colorbar(im1, ax = ax1)
+    colorbar_handle.set_label('Lifetime [h]')
+
+    beam2DF_temp = beam2DF.iloc[:, first:last]
+    time_max = (beam2DF_temp.index[-1] - beam2DF_temp.index[0]).total_seconds()/60
+    im2 = ax2.imshow(beam2DF_temp.values, interpolation = 'nearest', extent = [first - 1, last - 1, 0, time_max], vmin = 0, vmax = 250, aspect='auto', origin='lower', cmap = plt.get_cmap('jet_r'))
+    ax2.set_title('Beam 2')
+    ax2.set_xlabel('Bunch number')
+    ax2.set_ylabel('Time [min]')
+    colorbar_handle = fig.colorbar(im2, ax = ax2)
+    colorbar_handle.set_label('Lifetime [h]')
+    
+    return fig, ax1, ax2
+
+def LHCplotBetaForFill(fillNo):
+    
+    '''    
+    Plots beta function for given fill
+    
+    ==EXAMPLE===
+    importData.LHCplotBetaForFill(6666)
+    
+    '''
+    
+    beta = importData.LHCCals2pd(['HX:BETASTAR_IP%'], fillNo, 'SQUEEZE')
+    names = beta.columns.values
+    
+    for name in names:
+        if len(beta[name].dropna()) == 0:
+            beta.drop(labels = name, axis = 1)
+    names = beta.columns.values
+    
+    # First remove columns with no data
+    for name in names:
+        plt.plot(beta[name].dropna().index, beta[name].dropna())
+    plt.legend(names)
+    
+ def LHCplotLossRateAtSqueeze(fillNo, whichIP = 1, first = 1, last = 3564, resample_second = 60, beam1DF = None, beam2DF = None):
+    '''
+    
+    Plots inverse function of lifetime for a single bunch in the time moment where beta functions is lowest for
+    chosen IP.
+    
+    ===EXAMPLE===
+    importData.LHCplotLossRateAtSqueeze(6778, first = 500, last = 800, beam1DF = beam1DF, beam2DF = beam2DF)
+    
+    '''    
+    if beam1DF is None or beam2DF is None:        
+        beam1DF, beam2DF = LHCBunchLifeTimeInSquezee (fillNo, resample_second = 60)
+    last_bunch = LHCCals2pd(['HX:BETASTAR_IP1'], fillNo, 'STABLE', flag = 'last')
+    values = beam1DF.loc[last_bunch.index.floor('min')].values
+    plt.plot(np.arange(first - 1, last - 1), 100/values[0, first - 1:last - 1], 'b')
+    
+    values = beam2DF.loc[last_bunch.index.floor('min')].values
+    plt.plot(np.arange(first - 1, last - 1), 100/values[0, first - 1:last - 1], 'r')
+    
+    plt.legend(['Beam 1', 'Beam 2'])
+    plt.xlabel('Bunch number')
+    plt.ylabel('Loss rate [%]')
