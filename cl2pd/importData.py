@@ -1447,7 +1447,7 @@ def LHCplotBetaForFill(fillNo):
     
     '''
     
-    beta = importData.LHCCals2pd(['HX:BETASTAR_IP%'], fillNo, 'SQUEEZE')
+    beta = LHCCals2pd(['HX:BETASTAR_IP%'], fillNo, 'SQUEEZE')
     names = beta.columns.values
     
     for name in names:
@@ -1471,7 +1471,7 @@ def LHCplotLossRateAtSqueeze(fillNo, whichIP = 1, first = 1, last = 3564, resamp
     '''    
     if beam1DF is None or beam2DF is None:        
         beam1DF, beam2DF = LHCBunchLifeTimeInSquezee (fillNo, resample_second = 60)
-    last_bunch = importData.LHCCals2pd(['HX:BETASTAR_IP1'], fillNo, 'STABLE', flag = 'last')
+    last_bunch = LHCCals2pd(['HX:BETASTAR_IP1'], fillNo, 'STABLE', flag = 'last')
     values = beam1DF.loc[last_bunch.index.floor('min')].values
     plt.plot(np.arange(first - 1, last - 1), 100/values[0, first - 1:last - 1], 'b')
     
