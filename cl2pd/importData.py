@@ -6,6 +6,7 @@ import inspect
 import pytimber
 import dotdict
 import matplotlib.pyplot as plt
+import plotFunctions
 dotdict=dotdict.dotdict
 
 # TODO: discuss about the possible problem if the user has already defined a variable named 'cals' 
