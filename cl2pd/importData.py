@@ -1477,6 +1477,7 @@ def LHCPlotLossRateAtSqueeze(fillNo, whichIP = 1, first = 1, last = 3564, resamp
     
     ===EXAMPLE===
     fig, ax = plt.subplots(1, 1)
+    beam1DF, beam2DF = importData.LHCBunchLifeTimeInSquezee (6778, resample_second = 60, duration_of_stable = pd.Timedelta('0 days 00:10:00'))
     importData.LHCplotLossRateAtSqueeze(6778, first = 500, last = 800, beam1DF = beam1DF, beam2DF = beam2DF, fig = fig, ax = ax)    
     '''    
     if beam1DF is None or beam2DF is None:        
