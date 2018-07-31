@@ -1503,7 +1503,7 @@ def LHCPlotLossRateAtSqueeze(fillNo, whichIP = 1, first = 1, last = 3564, resamp
 
     return fig, ax
 
-def LHCPlotBunchPartnerIntensity(fillNo, bunchNo, scheduleDF = None, intensityDF = None):
+def LHCPlotBunchPartnerIntensity(fillNo, bunchNo, scheduleDF = None, intensityDF = None, fig = None, ax = None):
     '''
     This function plots intensities of bunches in beam two that interact with bunchNo 
     from beam one. 
@@ -1514,22 +1514,32 @@ def LHCPlotBunchPartnerIntensity(fillNo, bunchNo, scheduleDF = None, intensityDF
     ===EXAMPLE===
     fillNo = 6666
     fillingSchemeDF=importData.LHCFillsAggregation(['LHC.BCTFR.A6R4.B%:BUNCH_FILL_PATTERN'], fillNo, ['FLATTOP'],flag='next')
+    
     B1_bunches = fillingSchemeDF['LHC.BCTFR.A6R4.B1:BUNCH_FILL_PATTERN'].dropna().iloc[0]
     B2_bunches = fillingSchemeDF['LHC.BCTFR.A6R4.B2:BUNCH_FILL_PATTERN'].dropna().iloc[0]
+    
     scheduleDF = bbFunctions.B1CollisionScheduleDF(B1_bunches, B2_bunches, 25)
-    intensityDF = importData.LHCFillsAggregation(['ALICE:BUNCH_INTENSITIES_B2', 'ATLAS.BPTX.B2:BUNCH_INTENSITIES', 'CMS:BUNCH_INTENSITIES_B2', 'LHCB:BUNCH_INTENSITIES_B2'], fillNo, ['STABLE'],flag='last')
-    importData.LHCPlotBunchPartnerIntensity(fillNo, 615, scheduleDF = scheduleDF, intensityDF = intensityDF)
+    intensityDF = importData.LHCFillsAggregation(['LHC.BCTFR.A6R4.B2:BUNCH_INTENSITY'], fillNo, ['STABLE'],flag='last')
+    
+    fig, ax = plt.subplots(1, 3, figsize = (24, 5))
+    
+    importData.LHCPlotBunchPartnerIntensity(fillNo, 215, scheduleDF = scheduleDF, intensityDF = intensityDF, fig = fig, ax = ax[0])
+    importData.LHCPlotBunchPartnerIntensity(fillNo, 315, scheduleDF = scheduleDF, intensityDF = intensityDF, fig = fig, ax = ax[1])
+    importData.LHCPlotBunchPartnerIntensity(fillNo, 615, scheduleDF = scheduleDF, intensityDF = intensityDF, fig = fig, ax = ax[2])
     '''
     #=========IMPORTING OF DATA
     if scheduleDF is None:
-        fillingSchemeDF=LHCFillsAggregation(['LHC.BCTFR.A6R4.B%:BUNCH_FILL_PATTERN'], fillNo, ['FLATTOP'],flag='next')
+        fillingSchemeDF = LHCFillsAggregation(['LHC.BCTFR.A6R4.B%:BUNCH_FILL_PATTERN'], fillNo, ['FLATTOP'],flag='next')
         B1_bunches = fillingSchemeDF['LHC.BCTFR.A6R4.B1:BUNCH_FILL_PATTERN'].dropna().iloc[0]
         B2_bunches = fillingSchemeDF['LHC.BCTFR.A6R4.B2:BUNCH_FILL_PATTERN'].dropna().iloc[0]
         scheduleDF = bbFunctions.B1CollisionScheduleDF(B1_bunches, B2_bunches, 25)
 
     if intensityDF is None:
-        intensityDF = LHCFillsAggregation(['ALICE:BUNCH_INTENSITIES_B2', 'ATLAS.BPTX.B2:BUNCH_INTENSITIES', 'CMS:BUNCH_INTENSITIES_B2', 'LHCB:BUNCH_INTENSITIES_B2'], fillNo, ['STABLE'],flag='last')
+        intensityDF = LHCFillsAggregation(['LHC.BCTFR.A6R4.B2:BUNCH_INTENSITY'], fillNo, ['STABLE'],flag='last')
     #=========
+    
+    if fig is None or ax is None:
+        fig, ax = plt.subplots(1, 1)
     
     position_ALICE = scheduleDF.loc[bunchNo]['Positions in ALICE']
     partner_ALICE = scheduleDF.loc[bunchNo]['BB partners in ALICE'].astype(int)
@@ -1537,52 +1547,32 @@ def LHCPlotBunchPartnerIntensity(fillNo, bunchNo, scheduleDF = None, intensityDF
     position_ATLAS = scheduleDF.loc[bunchNo]['Positions in ATLAS/CMS']
     partner_ATLAS = scheduleDF.loc[bunchNo]['BB partners in ATLAS/CMS'].astype(int)
 
-    position_CMS = position_ATLAS
-    partner_CMS = partner_ATLAS
-
     position_LHCB = scheduleDF.loc[bunchNo]['Positions in LHCB']
     partner_LHCB = scheduleDF.loc[bunchNo]['BB partners in LHCB'].astype(int)
 
 
-    y_ALICE = np.array([-1]*len(position_ALICE))
+    y_ALICE = np.array([1]*len(position_ALICE))
     y_ATLAS = np.array([0]*len(position_ATLAS))
-    y_CMS = np.array([1]*len(position_CMS))
-    y_LHCB = np.array([2]*len(position_LHCB))
+    y_LHCB = np.array([-1]*len(position_LHCB))
 
-    intensity_ALICE = intensityDF['ALICE:BUNCH_INTENSITIES_B2'].dropna()
-    if not intensity_ALICE.empty:
-        intensity_ALICE = np.array(intensity_ALICE.iloc[0])
-        plt.scatter(position_ALICE, y_ALICE, alpha=1, cmap='jet', c= intensity_ALICE[partner_ALICE])
-        plotFunctions.setArrowLabel(plt.gca(), label=str(partner_ALICE[0]), arrowPosition=(position_ALICE[0], y_ALICE[0]), labelPosition=(position_ALICE[0], y_ALICE[0]-.5), myColor='r', arrowArc_rad=0.2)
-        plotFunctions.setArrowLabel(plt.gca(), label=str(partner_ALICE[-1]), arrowPosition=(position_ALICE[-1], y_ALICE[-1]), labelPosition=(position_ALICE[-1], y_ALICE[0]-.5), myColor='r', arrowArc_rad=-0.2)
+    intensity = intensityDF['LHC.BCTFR.A6R4.B2:BUNCH_INTENSITY']
+    intensity = np.array(intensity.iloc[0])
 
+    ax.scatter(position_ALICE, y_ALICE, alpha=1, cmap='jet', c= intensity[partner_ALICE])
+    plotFunctions.setArrowLabel(ax, label=str(partner_ALICE[0]), arrowPosition=(position_ALICE[0], y_ALICE[0]), labelPosition=(position_ALICE[0], y_ALICE[0]-.5), myColor='r', arrowArc_rad=0.2)
+    plotFunctions.setArrowLabel(ax, label=str(partner_ALICE[-1]), arrowPosition=(position_ALICE[-1], y_ALICE[-1]), labelPosition=(position_ALICE[-1], y_ALICE[0]-.5), myColor='r', arrowArc_rad=-0.2)
 
-    intensity_ATLAS = intensityDF['ATLAS.BPTX.B2:BUNCH_INTENSITIES'].dropna()
-    if not intensity_ATLAS.empty:
-        intensity_ATLAS = np.array(intensity_ATLAS.iloc[0])
-        plt.scatter(position_ATLAS, y_ATLAS, alpha=1, cmap='jet', c= intensity_ATLAS[partner_ATLAS])
-        plotFunctions.setArrowLabel(plt.gca(), label=str(partner_ATLAS[0]), arrowPosition=(position_ATLAS[0], y_ATLAS[0]), labelPosition=(position_ATLAS[0], y_ATLAS[0]-.5), myColor='r', arrowArc_rad=0.2)
-        plotFunctions.setArrowLabel(plt.gca(), label=str(partner_ATLAS[-1]), arrowPosition=(position_ATLAS[-1], y_ATLAS[-1]), labelPosition=(position_ATLAS[-1], y_ATLAS[0]-.5), myColor='r', arrowArc_rad=-0.2)
+    ax.scatter(position_ATLAS, y_ATLAS, alpha=1, cmap='jet', c= intensity[partner_ATLAS])
+    plotFunctions.setArrowLabel(ax, label=str(partner_ATLAS[0]), arrowPosition=(position_ATLAS[0], y_ATLAS[0]), labelPosition=(position_ATLAS[0], y_ATLAS[0]-.5), myColor='r', arrowArc_rad=0.2)
+    plotFunctions.setArrowLabel(ax, label=str(partner_ATLAS[-1]), arrowPosition=(position_ATLAS[-1], y_ATLAS[-1]), labelPosition=(position_ATLAS[-1], y_ATLAS[0]-.5), myColor='r', arrowArc_rad=-0.2)
 
-    intensity_CMS = intensityDF['CMS:BUNCH_INTENSITIES_B2'].dropna()
-    if not intensity_CMS.empty:
-        intensity_CMS = np.array(intensity_CMS.iloc[0])
-        plt.scatter(position_CMS, y_CMS, alpha=1, cmap='jet', c= intensity_CMS[partner_CMS])
-        plotFunctions.setArrowLabel(plt.gca(), label=str(partner_CMS[0]), arrowPosition=(position_CMS[0], y_CMS[0]), labelPosition=(position_CMS[0], y_CMS[0]-.5), myColor='r', arrowArc_rad=0.2)
-        plotFunctions.setArrowLabel(plt.gca(), label=str(partner_CMS[-1]), arrowPosition=(position_CMS[-1], y_CMS[-1]), labelPosition=(position_CMS[-1], y_CMS[0]-.5), myColor='r', arrowArc_rad=-0.2)
+    paths = ax.scatter(position_LHCB, y_LHCB, alpha=1, cmap='jet', c= intensity[partner_LHCB])
+    plotFunctions.setArrowLabel(ax, label=str(partner_LHCB[0]), arrowPosition=(position_LHCB[0], y_LHCB[0]), labelPosition=(position_LHCB[0], y_LHCB[0]-.5), myColor='r', arrowArc_rad=0.2)
+    plotFunctions.setArrowLabel(ax, label=str(partner_LHCB[-1]), arrowPosition=(position_LHCB[-1], y_LHCB[-1]), labelPosition=(position_LHCB[-1], y_LHCB[0]-.5), myColor='r', arrowArc_rad=-0.2)
 
-    intensity_LHCB = intensityDF['LHCB:BUNCH_INTENSITIES_B2'].dropna()
-    if not intensity_LHCB.empty:
-        intensity_LHCB = np.array(intensity_LHCB.iloc[0])
-        plt.scatter(position_LHCB, y_LHCB, alpha=1, cmap='jet', c= intensity_LHCB[partner_LHCB])
-        plotFunctions.setArrowLabel(plt.gca(), label=str(partner_LHCB[0]), arrowPosition=(position_LHCB[0], y_LHCB[0]), labelPosition=(position_LHCB[0], y_LHCB[0]-.5), myColor='r', arrowArc_rad=0.2)
-        plotFunctions.setArrowLabel(plt.gca(), label=str(partner_LHCB[-1]), arrowPosition=(position_LHCB[-1], y_LHCB[-1]), labelPosition=(position_LHCB[-1], y_LHCB[0]-.5), myColor='r', arrowArc_rad=-0.2)
-
-
-    plt.yticks([-1, 0, 1, 2], ['ALICE', 'ATLAS', 'CMS', 'LHCB'])
-    plt.ylim([-1.9, 2.9])
-    plt.xlabel('Bunch partner in B2')
-    plt.clim(0.9e10, 1.25e10)
-    plt.colorbar()
+    ax.set(yticks = [1, 0, -1], yticklabels = ['ALICE', 'ATLAS/CMS', 'LHCB'], ylim = [-1.8, 1.8], xlabel = 'Bunch partner in B2')
+    colorbar_handle = fig.colorbar(paths, ax = ax)
+    colorbar_handle.set_label('Bunch intensity')
+    ax.axvline(x=0)
     
-    return plt.gca()
+    return fig, ax
