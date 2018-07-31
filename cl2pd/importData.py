@@ -1221,21 +1221,21 @@ def LHCFillsMappingAggregation_v2 (listOfVariables, fillNos, beamModeList = None
 
     return resultDF.reset_index().set_index('fill')
 
-def LHCInjectionTree (fill_no, threshold = 1.0e+11):
+def LHCInjectionTree (fill_no, threshold = 2e+9, beam_mode = ['INJPROT', 'INJPHYS']):
     '''
     For a given fill number, this function constructs its injection tree. Treshold number might have to be adjusted.
     It represents the smallest jump in beam intensity that is the result of the injections.
     
-    ===EXAMPLE===
-    tree = importData.LHCInjectionTree(6666)
+    ========EXAMPLE========
+    tree = importData.injectionTree(6666)
     
-    for SPS in tree.beam1.SPS:
-        for PS in SPS.PS:
-            for PSB in PS.PSB:
-                print PSB.time
+    for SPS, i in zip(tree.beam1.atSPS, range(len(tree.beam1.atSPS))):
+        print('SPS '+str(i) + ': '+ str(SPS.atTime))
+        for PS, j in zip(SPS.atPS, range(len(SPS.atPS))):
+            print('\tPS '+str(i) + '.' + str(j) +': '+ str(PS.atTime))    
+            for PSB, k in zip(PS.atPSB, range(len(PS.atPSB))):
+                print('\t\tPSB '+str(i) + '.' + str(j) +'.'+str(k)+': '+ str(PSB.atTime))
     '''
-    # Global parameters
-    beam_mode = 'INJPHYS'
 
     # Parameters for beam data extraction with LHCCals2pd
     beam_vars = 'LHC.BCTFR.A6R4.B%:BEAM_INTENSITY'
@@ -1262,7 +1262,7 @@ def LHCInjectionTree (fill_no, threshold = 1.0e+11):
     psb_t_begin = pd.Timedelta('635ms')
     psb_t_end = pd.Timedelta('565ms')
 
-    # This function can be used to construct an injection three in beam 1
+    # This function can be used to construct an injection three in beam 1 and 2.
     # First the BEAM intensity data is extracted as it is the only reliable
     # source of information for the final level (SPS) injections to the beams
     beam_data = LHCCals2pd(beam_vars, fill_no, beam_mode)
@@ -1279,7 +1279,7 @@ def LHCInjectionTree (fill_no, threshold = 1.0e+11):
     # First all points that are heigher than their neigbours are marked
     diff1DF['max'] = (diff1DF[beam1_var])[(diff1DF[beam1_var].shift(1) < diff1DF[beam1_var]) & (diff1DF[beam1_var].shift(-1) < diff1DF[beam1_var])]
     diff2DF['max'] = (diff2DF[beam2_var])[(diff2DF[beam2_var].shift(1) < diff2DF[beam2_var]) & (diff2DF[beam2_var].shift(-1) < diff2DF[beam2_var])]
-
+    
     # Than all points that are not heigher are dropped
     diff1DF = diff1DF.dropna()
     diff2DF = diff2DF.dropna()
@@ -1296,6 +1296,9 @@ def LHCInjectionTree (fill_no, threshold = 1.0e+11):
     psDF = injection_data[injection_data[cps_destination_var] == cps_destination][[cps_batch_var]]
     psbDF = injection_data[injection_data[psb_destination_var] == psb_destination][[psb_batch_var]]
 
+    # You have to extract only those injections that made it to the beams.
+    # That is why the maximum extraction method is used.
+    
     sps_injections_b1 = pd.DataFrame()
     sps_injections_b2 = pd.DataFrame()
 
@@ -1307,70 +1310,71 @@ def LHCInjectionTree (fill_no, threshold = 1.0e+11):
         t1 = t2 - sps_t_delta
         sps_injections_b2 = sps_injections_b2.append(spsDF_b2[ (spsDF_b2.index > t1) & (spsDF_b2.index < t2) ])
 
+    # These lists are related to the dotdictonary that will contain all of the other injections
     tree = dotdict()
-    sps1_list = []
-    sps2_list = []
+    sps_list = [[], []]
+    
+    # This list containts the two sps injection dataframes needed for the creation of the tree
+    sps_injections = [sps_injections_b1, sps_injections_b2]
 
-    for i in range(0, len(sps_injections_b1.index)):
-
-
-        t_sps = sps_injections_b1.index[i]
-        sps1_injections_dict = dotdict({"time":t_sps})
-
-        ps_injections = psDF[(psDF.index >= t_sps - ps_t_begin) & (psDF.index <= t_sps + ps_t_end)]
-
-        ps_list = []
-        for j in range(0, len(ps_injections.index)):
-
-            t_ps = ps_injections.index[j]
-            ps_injections_dict = dotdict({"time":t_ps, "batch" : ps_injections[cps_batch_var][j]})
-
-            psb_injections = psbDF[(psbDF.index >= t_ps - psb_t_begin) & (psbDF.index <= t_ps + psb_t_end)]
-            psb_list = []
-
-            for k in range(0, len(psb_injections.index)):
-                t_psb = psb_injections.index[k]
-                psb_injections_dict = dotdict({"time":t_psb})
-                psb_list.append(psb_injections_dict)
-
-            ps_injections_dict.update(dotdict({"PSB" : psb_list}))
-            ps_list.append(ps_injections_dict)
-
-        sps1_injections_dict.update({"PS": ps_list})
-        sps1_list.append(sps1_injections_dict)
-
-    tree["beam1"] = dotdict({"SPS":sps1_list})
+    # First we iterate through beam numbers (b)
+    for b in range(0, 2):
+        
+        #Then we iterate through all the sps injectios in particular beam 
+        for i in range(0, len(sps_injections[b].index)):
 
 
-    for i in range(0, len(sps_injections_b2.index)):
+            t_sps = sps_injections[b].index[i]
+            sps_injections_dict = dotdict({"atTime":t_sps})
 
+            ps_injections = psDF[(psDF.index >= t_sps - ps_t_begin) & (psDF.index <= t_sps + ps_t_end)]
 
-        t_sps = sps_injections_b2.index[i]
-        sps2_injections_dict = dotdict({"time":t_sps})
+            ps_list = []
+            
+            #Then we iterate through all the ps injectios in particular sps injection
+            for j in range(0, len(ps_injections.index)):
 
-        ps_injections = psDF[(psDF.index >= t_sps - ps_t_begin) & (psDF.index <= t_sps + ps_t_end)]
+                #pdb.set_trace()
+                t_ps = ps_injections.index[j]
+                ps_injections_dict = dotdict({"atTime":t_ps, "atBatch" : ps_injections[cps_batch_var][j]})
 
-        ps_list = []
-        for j in range(0, len(ps_injections.index)):
+                psb_injections = psbDF[(psbDF.index >= t_ps - psb_t_begin) & (psbDF.index <= t_ps + psb_t_end)]
+                psb_list = []
+                
+                #Then we iterate through all the psb injectios in particular ps injection
+                for k in range(0, len(psb_injections.index)):
+                    t_psb = psb_injections.index[k]
+                    psb_injections_dict = dotdict({"atTime":t_psb})
+                    psb_list.append(psb_injections_dict)
 
-            t_ps = ps_injections.index[j]
-            ps_injections_dict = dotdict({"time":t_ps, "batch" : ps_injections[cps_batch_var][j]})
+                ps_injections_dict.update(dotdict({"atPSB" : psb_list}))
+                ps_list.append(ps_injections_dict)
 
-            psb_injections = psbDF[(psbDF.index >= t_ps - psb_t_begin) & (psbDF.index <= t_ps + psb_t_end)]
-            psb_list = []
+            sps_injections_dict.update({"atPS": ps_list})
+            sps_list[b].append(sps_injections_dict)
 
-            for k in range(0, len(psb_injections.index)):
-                t_psb = psb_injections.index[k]
-                psb_injections_dict = dotdict({"time":t_psb})
-                psb_list.append(psb_injections_dict)
+    tree["beam1"] = dotdict({"atSPS":sps_list[0]})
+    tree["beam2"] = dotdict({"atSPS":sps_list[1]})
 
-            ps_injections_dict.update(dotdict({"PSB" : psb_list}))
-            ps_list.append(ps_injections_dict)
+    # DETECTION OF DUMPS
+    # Similar method as for detection of injections is used.
+    diff1DF = pd.DataFrame(difference1)
+    diff2DF = pd.DataFrame(difference2)
 
-        sps2_injections_dict.update({"PS": ps_list})
-        sps2_list.append(sps2_injections_dict)
+    # First all points that are lower than their neigbours are marked
+    diff1DF['min'] = (diff1DF[beam1_var])[(diff1DF[beam1_var].shift(1) > diff1DF[beam1_var]) & (diff1DF[beam1_var].shift(-1) > diff1DF[beam1_var])]
+    diff2DF['min'] = (diff2DF[beam2_var])[(diff2DF[beam2_var].shift(1) > diff2DF[beam2_var]) & (diff2DF[beam2_var].shift(-1) > diff2DF[beam2_var])]
+    
+    # Than all points that are not lower are dropped
+    diff1DF = diff1DF.dropna()
+    diff2DF = diff2DF.dropna()
 
-    tree["beam2"] = dotdict({"SPS":sps2_list})
+    # In the end, all minima that are higher than some threshold are discarded
+    only_min_b1 = diff1DF[diff1DF[beam1_var] < -threshold]
+    only_min_b2 = diff2DF[diff2DF[beam2_var] < -threshold]
+    
+    tree["beam1"].update({"atDump":list(only_min_b1.index)})
+    tree["beam2"].update({"atDump":list(only_min_b2.index)})
     
     return tree
 
