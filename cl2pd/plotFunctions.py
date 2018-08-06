@@ -328,13 +328,13 @@ def LHCPlotBunchPartnerIntensity(fillNo, bunchNo, scheduleDF = None, intensityDF
 
     selected_bunches = [941, 997, 1050]
 
-    importData.LHCPlotLossRateAtSqueeze(fillNo, whichIP=1, first=800, last=1500, resample_second=60, beam1DF=beam1DF, beam2DF=beam2DF, fig = fig, ax = ax[0][0])
-    importData.LHCPlotLossRateAtSqueeze(fillNo, whichIP=1, first=800, last=1500, resample_second=60, beam1DF=beam1DF, beam2DF=beam2DF, fig = fig, ax = ax[0][1])
-    importData.LHCPlotLossRateAtSqueeze(fillNo, whichIP=1, first=800, last=1500, resample_second=60, beam1DF=beam1DF, beam2DF=beam2DF, fig = fig, ax = ax[0][2])
+    plotFunctions.LHCPlotLossRateAtSqueeze(fillNo, whichIP=1, first=800, last=1500, resample_second=60, beam1DF=beam1DF, beam2DF=beam2DF, fig = fig, ax = ax[0][0])
+    plotFunctions.LHCPlotLossRateAtSqueeze(fillNo, whichIP=1, first=800, last=1500, resample_second=60, beam1DF=beam1DF, beam2DF=beam2DF, fig = fig, ax = ax[0][1])
+    plotFunctions.LHCPlotLossRateAtSqueeze(fillNo, whichIP=1, first=800, last=1500, resample_second=60, beam1DF=beam1DF, beam2DF=beam2DF, fig = fig, ax = ax[0][2])
 
-    importData.LHCPlotBunchPartnerIntensity(fillNo, selected_bunches[0], scheduleDF = scheduleDF, intensityDF = intensityDF, fig = fig, ax = ax[1][0])
-    importData.LHCPlotBunchPartnerIntensity(fillNo, selected_bunches[1], scheduleDF = scheduleDF, intensityDF = intensityDF, fig = fig, ax = ax[1][1])
-    importData.LHCPlotBunchPartnerIntensity(fillNo, selected_bunches[2], scheduleDF = scheduleDF, intensityDF = intensityDF, fig = fig, ax = ax[1][2])
+    plotFunctions.LHCPlotBunchPartnerIntensity(fillNo, selected_bunches[0], scheduleDF = scheduleDF, intensityDF = intensityDF, fig = fig, ax = ax[1][0])
+    plotFunctions.LHCPlotBunchPartnerIntensity(fillNo, selected_bunches[1], scheduleDF = scheduleDF, intensityDF = intensityDF, fig = fig, ax = ax[1][1])
+    plotFunctions.LHCPlotBunchPartnerIntensity(fillNo, selected_bunches[2], scheduleDF = scheduleDF, intensityDF = intensityDF, fig = fig, ax = ax[1][2])
 
     bunches = ax[0][0].lines[0].get_xydata()[:, 0]
     loss_rate = ax[0][0].lines[0].get_xydata()[:, 1]
@@ -387,7 +387,7 @@ def LHCPlotBunchPartnerIntensity(fillNo, bunchNo, scheduleDF = None, intensityDF
     setArrowLabel(ax, label=str(partner_LHCB[0]), arrowPosition=(position_LHCB[0], y_LHCB[0]), labelPosition=(position_LHCB[0], y_LHCB[0]-.5), myColor='r', arrowArc_rad=0.2)
     setArrowLabel(ax, label=str(partner_LHCB[-1]), arrowPosition=(position_LHCB[-1], y_LHCB[-1]), labelPosition=(position_LHCB[-1], y_LHCB[0]-.5), myColor='r', arrowArc_rad=-0.2)
 
-    ax.set(yticks = [1, 0, -1], yticklabels = ['ALICE', 'ATLAS/CMS', 'LHCB'], ylim = [-1.8, 1.8], xlabel = 'Bunch partner in B2')
+    ax.set(yticks = [1, 0, -1], yticklabels = ['ALICE', 'ATLAS/CMS', 'LHCB'], ylim = [-1.8, 1.8], xlim = [-26, 26], xlabel = 'Bunch partner in B2')
     colorbar_handle = fig.colorbar(paths, ax = ax)
     colorbar_handle.set_label('Bunch intensity')
     ax.axvline(x=0)
