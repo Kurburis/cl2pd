@@ -376,12 +376,12 @@ def LHCPlotBunchPartnerIntensity(fillNo, bunchNo, scheduleDF = None, intensityDF
     intensity = np.array(intensity.iloc[0])
 
     if len(position_ALICE) is not 0:
-        ax.scatter(position_ALICE, y_ALICE, alpha=1, cmap='jet', c= intensity[partner_ALICE], vmin = 0.9e11, vmax = 1.25e11)
+        paths = ax.scatter(position_ALICE, y_ALICE, alpha=1, cmap='jet', c= intensity[partner_ALICE], vmin = 0.9e11, vmax = 1.25e11)
         setArrowLabel(ax, label=str(partner_ALICE[0]), arrowPosition=(position_ALICE[0], y_ALICE[0]), labelPosition=(position_ALICE[0], y_ALICE[0]-.5), myColor='r', arrowArc_rad=0.2)
         setArrowLabel(ax, label=str(partner_ALICE[-1]), arrowPosition=(position_ALICE[-1], y_ALICE[-1]), labelPosition=(position_ALICE[-1], y_ALICE[0]-.5), myColor='r', arrowArc_rad=-0.2)
 
     if len(position_ATLAS) is not 0:
-        ax.scatter(position_ATLAS, y_ATLAS, alpha=1, cmap='jet', c = intensity[partner_ATLAS], vmin = 0.9e11, vmax = 1.25e11)
+        paths = ax.scatter(position_ATLAS, y_ATLAS, alpha=1, cmap='jet', c = intensity[partner_ATLAS], vmin = 0.9e11, vmax = 1.25e11)
         setArrowLabel(ax, label=str(partner_ATLAS[0]), arrowPosition=(position_ATLAS[0], y_ATLAS[0]), labelPosition=(position_ATLAS[0], y_ATLAS[0]-.5), myColor='r', arrowArc_rad=0.2)
         setArrowLabel(ax, label=str(partner_ATLAS[-1]), arrowPosition=(position_ATLAS[-1], y_ATLAS[-1]), labelPosition=(position_ATLAS[-1], y_ATLAS[0]-.5), myColor='r', arrowArc_rad=-0.2)
 
